@@ -1,0 +1,15 @@
+[package]
+name = "ecdsa"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+long_int = { git = "https://github.com/LaGipeR/LongInt", version = "0.1.0" }
+random_generator = { git = "https://github.com/LaGipeR/Random-Generator", version = "0.1.0" }
+wrapper = { git = "https://github.com/LaGipeR/wrapper", version = "0.1.0" }
+
+
+[dev-dependencies]
+sha1 = {git = "https://github.com/LaGipeR/SHA-1"}
