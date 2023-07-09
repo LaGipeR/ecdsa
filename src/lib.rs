@@ -5,10 +5,10 @@ use wrapper::{Group, Point};
 type SecretKey = LongInt;
 type PublicKey = Point;
 
-struct ecdsa(Group);
+struct Ecdsa(Group);
 
-impl ecdsa {
-    pub fn new() -> ecdsa {
+impl Ecdsa {
+    pub fn new() -> Ecdsa {
         let a = LongInt::new(); // 0
         let b = LongInt::from_hex("7"); // 7
         let p =
@@ -23,11 +23,11 @@ impl ecdsa {
 
         group.set_generator(&gen_point, &order, &cofactor);
 
-        Self::new_with_group(group)
+        Self::new_from_group(group)
     }
 
-    pub fn new_from_group(group: Group) -> ecdsa {
-        ecdsa(group)
+    fn new_from_group(group: Group) -> Ecdsa {
+        Ecdsa(group)
     }
 
     pub fn generate_key_pair(&self) -> (SecretKey, PublicKey) {
@@ -49,7 +49,7 @@ impl ecdsa {
         let n = self.0.get_order();
         let k = Self::generate_random(&self);
 
-        let (x, _) = &k * self.0.get_generator().get_cords();
+        let (x, _) = (&k * self.0.get_generator()).get_cords();
 
         let r = x % &n;
 
@@ -57,7 +57,7 @@ impl ecdsa {
             return self.sign(secret_key, hash);
         }
 
-        let s = (k.inv(&n) * (hash + &r * secret_key)) % &n;
+        let s = (k.inv(&n).unwrap() * (hash + &r * secret_key)) % &n;
 
         if s == LongInt::new() {
             return self.sign(secret_key, hash);
@@ -66,7 +66,12 @@ impl ecdsa {
         (r, s)
     }
 
-    pub fn verify(&self, public_key: &PublicKey, hash: &LongInt, sign: &(LongInt, LongInt)) -> bool {
+    pub fn verify(
+        &self,
+        public_key: &PublicKey,
+        hash: &LongInt,
+        sign: &(LongInt, LongInt),
+    ) -> bool {
         if public_key.is_inf() {
             return false;
         }
@@ -75,7 +80,7 @@ impl ecdsa {
         }
 
         let n = self.0.get_order();
-        if !(&n * public_key == Point::inf(&self.0)) {
+        if !(&n * public_key).is_inf() {
             return false;
         }
 
@@ -91,7 +96,7 @@ impl ecdsa {
             return false;
         }
 
-        let s_inv = s.inv(&n);
+        let s_inv = s.inv(&n).unwrap();
 
         let u1 = hash * &s_inv;
         let u2 = r * &s_inv;
@@ -104,7 +109,7 @@ impl ecdsa {
 
         let (x, _) = p.get_cords();
 
-        r == x % n
+        *r == x % n
     }
 
     fn generate_random(&self) -> LongInt {
@@ -131,14 +136,14 @@ mod tests {
 
     #[test]
     fn general() {
-        let signer = ecdsa::new();
+        let signer = Ecdsa::new();
         let (sk, pk) = signer.generate_key_pair();
 
         let message = "hello world!";
-        let long_int_m = message2long_int(m);
+        let long_int_m = message2long_int(message);
 
         let mut hasher = sha1::SHA1::new();
-        hasher.add(&sha1::u8_slice_to_bool(&m.as_bytes()));
+        hasher.add(&sha1::u8_slice_to_bool(&message.as_bytes()));
         let hash = hasher.finalize();
 
         let sign = signer.sign(&sk, &hash);
